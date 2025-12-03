@@ -16,17 +16,15 @@ import { PreferencesModule } from './modules/preferences/preferences.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
+        type: 'sqlite',
+
+        database: ':memory:',
+
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
+
+        synchronize: true, // auto create tables
       }),
     }),
-
     OrganizationsModule,
     NotificationsModule,
     PreferencesModule,
