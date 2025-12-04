@@ -1,98 +1,92 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Notification Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A hierarchical notification preference management system built with NestJS and TypeORM. This service allows organizations to manage notification groups, topics, and user preferences across multiple communication channels.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## What It Is
 
-## Description
+This is a backend service that provides a flexible notification preference system where:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Organizations can create notification groups and topics
+- Users can control their notification preferences at both group and topic levels
+- Preferences can be configured per communication channel (email, SMS, push, in-app, chat, WhatsApp)
+- A two-gate system ensures notifications are only sent when explicitly allowed
 
-## Project setup
+The system follows an opt-in model by default, requiring users to explicitly enable notifications for specific topics and channels.
 
-```bash
-$ npm install
+## Architecture
+
+### Module Structure
+
+- **Organizations Module:** Handles the people and companies, it sets up organizations and manages users, deciding who gets to be an Admin or a regular Customer.
+- **Notifications Module:** Keeps your alerts organized by sorting them into broad Groups (like "Marketing") that hold specific Topics (like "New Offers"), so everything stays structured!
+- **Preferences Module:** Acts as the "brain" for permissions; it lets users hit a "master switch" to mute an entire group or fine-tune their settings to just block specific channels like SMS.
+
+### Data Flow and Hierarchy
+
+```
+Organization
+    ├── Users
+    │   ├── User 1 (admin/customer)
+    │   └── User 2 (admin/customer)
+    │
+    └── Notification Groups
+        ├── Group 1 (e.g., "Marketing")
+        │   ├── Topic 1 (e.g., "Product Updates")
+        │   │   ├── Channel: email
+        │   │   ├── Channel: SMS
+        │   │   └── Channel: push
+        │   └── Topic 2 (e.g., "Newsletters")
+        │
+        └── Group 2 (e.g., "Security")
+            └── Topic 1 (e.g., "Security Alerts")
 ```
 
-## Compile and run the project
+### Notification Permission Logic (Two-Gate System)
 
+When checking if a notification should be sent:
+
+1. **Gate 1 - Group Preference Check**:
+   - If user has disabled the entire group → BLOCK
+   - If group is enabled or no preference set → Continue to Gate 2
+
+2. **Gate 2 - Topic/Channel Preference Check**:
+   - If user has explicitly enabled this topic + channel → ALLOW
+   - If no explicit preference → BLOCK (opt-in model)
+
+This ensures:
+- Users can disable entire categories with one switch
+- Fine-grained control per topic and channel
+- Default opt-in behavior (safer for users)
+
+### Guard System
+
+- `AdminGuard`: Protects endpoints that should only be accessible by admin users
+  - Applied to group and topic creation endpoints
+  - Checks user role from request headers
+
+## How to Run
+
+### Installation
+
+1. Clone the repository
+
+2. Install dependencies:
 ```bash
-# development
-$ npm run start
+npm install
+```
+### Running the Application
 
-# watch mode
-$ npm run start:dev
+#### Development Mode:
+```bash
+npm run start:dev
+```
+The server will start on `http://localhost:3000` or any other port you want. 
 
-# production mode
-$ npm run start:prod
+**The application currently uses SQLite with an in-memory database for development. This means:
+- Data is reset on every server restart**
+
+To use a persistent database, modify the TypeORM configuration in `src/app.module.ts`:
+```typescript
+database: 'path/to/database.sqlite', // instead of ':memory:'
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
