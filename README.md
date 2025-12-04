@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Subject.png" width="90" alt="Notification Logic Logo">
+</p>
+
 # Notification Service
 
 A hierarchical notification preference management system built with NestJS and TypeORM. This service allows organizations to manage notification groups, topics, and user preferences across multiple communication channels.
